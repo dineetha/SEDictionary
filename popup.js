@@ -63,7 +63,7 @@ $(document).ready(function () {
     if (sinhalaDetection(typedWord) == false) {
       words.forEach(word => {
         for (const key in word) {
-          if (key.startsWith(typedWord) && result.length < 15) {
+          if (key.startsWith(typedWord) && result.length < 20) {
             if (result.indexOf(key) < 0) {
               result.push(key);
             }
@@ -74,7 +74,7 @@ $(document).ready(function () {
       words.sort(compare);
       words.forEach(word => {
         for (const key in word) {
-          if (word[key].startsWith(typedWord) && result.length < 15) {
+          if (word[key].startsWith(typedWord) && result.length < 20) {
             if (result.indexOf(word[key]) < 0) {
               result.push(word[key]);
             }
