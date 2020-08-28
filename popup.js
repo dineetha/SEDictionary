@@ -9,12 +9,9 @@ $(document).ready(function () {
   // Get dictionary file when popup opening
   let words;
   (function () {
-    $.get("ENtoSI.json", "",
-      function (data, textStatus, jqXHR) {
+    $.get("ENtoSI.json", "", function (data, textStatus, jqXHR) {
         words = JSON.parse(data);
-      },
-      "text"
-    );
+      }, "text");
     $("#search1").focus();
   })();
 
@@ -33,7 +30,7 @@ $(document).ready(function () {
           }
         }
       });
-     
+
     } else {
 
       words.forEach(word => {
@@ -64,27 +61,27 @@ $(document).ready(function () {
     let typedWord = $("#search1").val();
 
     if (sinhalaDetection(typedWord) == false) {
-    words.forEach(word => {
-      for (const key in word) {
-        if (key.startsWith(typedWord) && result.length < 15) {
-          if (result.indexOf(key) < 0) {
-            result.push(key);
+      words.forEach(word => {
+        for (const key in word) {
+          if (key.startsWith(typedWord) && result.length < 10) {
+            if (result.indexOf(key) < 0) {
+              result.push(key);
+            }
           }
         }
-      }
-    });
-  } else {
-    words.sort(compare);
-    words.forEach(word => {
-      for (const key in word) {
-        if (word[key].startsWith(typedWord) && result.length < 15) {
-          if (result.indexOf(word[key]) < 0) {
-            result.push(word[key]);
+      });
+    } else {
+      words.sort(compare);
+      words.forEach(word => {
+        for (const key in word) {
+          if (word[key].startsWith(typedWord) && result.length < 10) {
+            if (result.indexOf(word[key]) < 0) {
+              result.push(word[key]);
+            }
           }
         }
-      }
-    });
-  }
+      });
+    }
 
     if ($("#search1").val() != "") {
       $("#div3").empty();
@@ -109,12 +106,11 @@ $(document).ready(function () {
   }
 
   // Object array sort
-  function compare( a, b ) {
+  function compare(a, b) {
     let a1 = a[Object.keys(a)[0]];
     let b1 = b[Object.keys(b)[0]];
     return a1.localeCompare(b1);
   }
-
 
   //***** Events
 
