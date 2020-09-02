@@ -1,33 +1,33 @@
 ﻿{
-   "background": {
-      "page": "background.html",
-	  "persistent": false
-   },
-   "browser_action": {
-      "default_icon": {
-         "16": "img/icon16.png",
-         "32": "img/icon32.png"
-      },
-      "default_popup": "popup.html",
-      "default_title": "Sinhala English Dictionary"
-   },
- "content_scripts": [
+  "background": {
+    "script": ["jquery-3.2.1.min.js", "background.js"],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "img/icon16.png",
+      "32": "img/icon32.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "Sinhala English Dictionary"
+  },
+  "content_scripts": [
     {
       "matches": ["\u003Call_urls>"],
       "js": ["content.js"]
-    }],
-
-   "description": "English to Sinhala and Sinhala to English Dictionary.",
-   "icons": {
-      "16": "img/icon16.png",
-      "32": "img/icon32.png",
-      "48": "img/icon48.png",
-	  "128": "img/icon128.png"
-   },
-   "manifest_version": 2,
-   "name": "SE Dictionary",
-   "offline_enabled": true,
-   "permissions": ["activeTab", "contextMenus"],
-   "update_url": "https://clients2.google.com/service/update2/crx",
-   "version": "1.0"
+    }
+  ],
+  "description": "English to Sinhala and Sinhala to English Dictionary.",
+  "icons": {
+    "16": "img/icon16.png",
+    "32": "img/icon32.png",
+    "48": "img/icon48.png",
+    "128": "img/icon128.png"
+  },
+  "manifest_version": 2,
+  "name": "SE Dictionary",
+  "offline_enabled": true,
+  "permissions": ["activeTab", "contextMenus"],
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  "version": "1.0"
 }
