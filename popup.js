@@ -6,25 +6,33 @@ This code use very simple easy to understand approach suitable for students lear
  */
 
 $(document).ready(function () {
-  // Get dictionary file when popup opening
-  let words;
 
-  chrome.runtime.sendMessage({
-    type: "notification", options: {
-      type: "basic",
-      iconUrl: chrome.extension.getURL("icon128.png"),
-      title: "Test",
-      message: "get_words"
-    }
-  });
+  // Get dictionary in chrome storage when popup opening
+  let words = [];
+  $("#search_box").focus();
 
+  function getWords(cb) {
+    chrome.storage.local.get(['sed'], function (result) {
+      if (result != undefined) {
+        words = result.sed;
+        //$("#search_box").prop("disabled", false);
+       // $("#result_box").empty();
+       cb();
+      } else {
+        $("#result_box").text("Dictionary definitions loading.....");
+      }
+    });
+  }
 
-  $("#search1").focus();
+  /*   chrome.runtime.sendMessage({ getWords: "ok" }, function (response) {
+      console.log(response.sendWords);
+    }); */
 
   // Search button click
   function searchWord() {
+    $("#result_box").text("Searching.....");
     let result = [];
-    let typedWord = $("#search1").val();
+    let typedWord = $("#search_box").val();
 
     if (sinhalaDetection(typedWord) == false) {
       words.forEach((word) => {
@@ -52,15 +60,16 @@ $(document).ready(function () {
       }
     }
 
-    $("#div3").empty();
+    $("#result_box").empty();
     result.forEach((element) => {
-      $("#div3").append("<div>" + element + "</div>");
+      $("#result_box").append("<div>" + element + "</div>");
     });
   }
 
+  // Getting instant suggestions
   function suggestWord() {
     let result = [];
-    let typedWord = $("#search1").val();
+    let typedWord = $("#search_box").val();
     if (sinhalaDetection(typedWord) == false) {
       words.forEach((word) => {
         for (const key in word) {
@@ -84,19 +93,23 @@ $(document).ready(function () {
       });
     }
 
-    if ($("#search1").val() != "") {
-      $("#div3").empty();
-      result.forEach((element) => {
-        $("#div3").append(
-          "<a href='#' class='suggestList'>" + element + "</a><br>"
-        );
-      });
-      $(".suggestList").click(function (e) {
-        $("#search1").val(e.toElement.innerHTML);
-        searchWord();
-      });
+    if ($("#search_box").val() != "") {
+      if (result.length != 0) {
+        $("#result_box").empty();
+        result.forEach((element) => {
+          $("#result_box").append(
+            "<a href='#' class='suggestList'>" + element + "</a><br>"
+          );
+        });
+        $(".suggestList").click(function (e) {
+          $("#search_box").val(e.toElement.innerHTML);
+          searchWord();
+        });
+      } else {
+        $("#result_box").text("No matching words found\n");
+      }
     } else {
-      $("#div3").empty();
+      $("#result_box").text("Please enter a word to find the meaning");
     }
   }
 
@@ -119,17 +132,31 @@ $(document).ready(function () {
 
   //***** Events
 
-  // Type in search box event. Get suggested result like Google results page
-  $("#search1").keyup(function (e) {
-    if (e.keyCode == 13) {
-      searchWord();
+  // Type in search box event
+  $("#search_box").keyup(function (e) {
+    if (words.length == 0) {
+      getWords(function () {
+        if (e.keyCode == 13) {
+          searchWord();
+        } else {
+          suggestWord();
+        }
+      });
     } else {
+      if (e.keyCode == 13) {
+        searchWord();
+      } else {
+        suggestWord();
+      }
+    }
+  }).on("search", function () {
+    if ($(this).val() == "") {
       suggestWord();
     }
   });
 
   // Click search button and get meaning
-  $("#button1").click(function () {
+  $("#search_button").click(function () {
     searchWord();
   });
 });

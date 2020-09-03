@@ -1,6 +1,6 @@
 ﻿{
   "background": {
-    "script": ["jquery-3.2.1.min.js", "background.js"],
+    "scripts": ["jquery-3.2.1.min.js", "background.js"],
     "persistent": false
   },
   "browser_action": {
@@ -27,7 +27,7 @@
   "manifest_version": 2,
   "name": "SE Dictionary",
   "offline_enabled": true,
-  "permissions": ["activeTab", "contextMenus"],
+  "permissions": ["activeTab", "contextMenus", "storage", "unlimitedStorage"],
   "update_url": "https://clients2.google.com/service/update2/crx",
   "version": "1.0"
 }

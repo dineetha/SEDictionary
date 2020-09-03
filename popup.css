@@ -1,40 +1,35 @@
 /* Global Search Stylesheet */
-html
-{
-width:350px;
-height:110px;
-font-family:"arial";
+html {
+  width: 350px;
+  height: 110px;
+  font-family: "arial";
 }
-body
-{
-width:350px;
-height:110px;
-font-family:"arial";
-font-size: 14px;
+body {
+  width: 350px;
+  height: 110px;
+  font-family: "arial";
+  font-size: 16px;
 }
-#cont
-{
-   margin-top: 15px;
-   margin-bottom: 20px;
+#search_form {
+  margin-top: 15px;
+  margin-bottom: 20px;
 }
-#div1,#div2
-{
-color:gray;
+#footer {
+  color: gray;
+  font-size: 10px;
 }
-#div1
-{
-    font-size:15px;
-    font-weight:bold;
-    color:green;
-}
-#div2
-{
-font-size:10px;
+#result_box {
+  font-size: 14px;
 }
 .suggestList {
-    font-size:10px;
+  display: inline-block;
+  width: 100%;
+  font-size: 14px;
+  border: 2px whitesmoke solid;
+  border-radius: 2px;
+  padding: 5px;
+ 
 }
-img
-{
-    vertical-align:middle
+img {
+  vertical-align: middle;
 }
