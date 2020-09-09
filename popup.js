@@ -6,19 +6,20 @@ This code use very simple easy to understand approach suitable for students lear
  */
 
 $(document).ready(function () {
-
   // Get dictionary in chrome storage when popup opening
   let words = [];
   getWords(gettingReady);
 
   function getWords(cb) {
-    chrome.storage.local.get(['sed'], function (result) {
+    chrome.storage.local.get(["sed"], function (result) {
       if (result != undefined) {
         words = result.sed;
         words.sort(compareEn);
         cb();
       } else {
-        $("#result_box").text("Error 1<br>Dictionary definitions can't be loaded");
+        $("#result_box").text(
+          "Error 1<br>Dictionary definitions can't be loaded"
+        );
       }
     });
   }
@@ -89,16 +90,25 @@ $(document).ready(function () {
       words.sort(compareSi);
       words.forEach((word) => {
         for (const key in word) {
-          let siWords = word[key].split(", ");
-          siWords.forEach((siWord) => {
-            if (siWord.startsWith(typedWord) && result.length <= 10) {
-              if (result.indexOf(siWord) < 0) {
-                result.push(siWord);
-              }
+          if (word[key].startsWith(typedWord) && result.length <= 10) {
+            if (result.indexOf(word[key]) < 0) {
+              result.push(word[key]);
             }
-          });
+          }
         }
       });
+      /*       words.forEach((word) => {
+              for (const key in word) {
+                let siWords = word[key].split(", ");
+                siWords.forEach((siWord) => {
+                  if (siWord.startsWith(typedWord) && result.length <= 10) {
+                    if (result.indexOf(siWord) < 0) {
+                      result.push(siWord);
+                    }
+                  }
+                });
+              }
+            }); */
     }
 
     if ($("#search_box").val() != "") {
@@ -135,41 +145,42 @@ $(document).ready(function () {
   function compareSi(a, b) {
     let a1 = a[Object.keys(a)[0]];
     let b1 = b[Object.keys(b)[0]];
- /*    if (a1.length > b1.length) {
-      return 1;
-    } else if(a1.length < b1.length) {
-      return -1;
-    } else {
-      return 0;
-    } */
+    /*    if (a1.length > b1.length) {
+         return 1;
+       } else if(a1.length < b1.length) {
+         return -1;
+       } else {
+         return 0;
+       } */
     return a1.localeCompare(b1);
   }
 
-    // Object array sort by values for English words
-    function compareEn(a, b) {
-      let a1 = Object.keys(a)[0];
-      let b1 = Object.keys(b)[0];
-      return a1.localeCompare(b1);
-    }
+  // Object array sort by values for English words
+  function compareEn(a, b) {
+    let a1 = Object.keys(a)[0];
+    let b1 = Object.keys(b)[0];
+    return a1.localeCompare(b1);
+  }
 
   //***** Events
 
   // Type in search box event
-  $("#search_box").keyup(function (e) {
-    if (e.keyCode == 13) {
-      searchWord();
-    } else {
-      suggestWord();
-    }
-  }).on("search", function () {
-    if ($(this).val() == "") {
-      suggestWord();
-    }
-  });
+  $("#search_box")
+    .keyup(function (e) {
+      if (e.keyCode == 13) {
+        searchWord();
+      } else {
+        suggestWord();
+      }
+    })
+    .on("search", function () {
+      if ($(this).val() == "") {
+        suggestWord();
+      }
+    });
 
   // Click search button and get meaning
   $("#search_button").click(function () {
     searchWord();
   });
-
 });
