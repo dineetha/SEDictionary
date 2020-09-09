@@ -2,7 +2,7 @@
 ## English to Sinhala and Sinhala to English Dictionary Extension for Chromium based browsers.
 
 ![version](https://img.shields.io/badge/version%202.0-brightgreen)
-![license](https://img.shields.io/badge/license-GPL--3.0-blue)
+![license](https://img.shields.io/badge/license-GPL--3.0-blue)<br>
 Of course there are lots of these Sinhala English Dictionaries :blush: A few Chrome extensions too. Yet this one is written from the scratch. The code is very simple and easy to understand for beginners who are learning JavaScript and JQuery. Current version is only for educational purpose. New features will be added soon. Hope you will contribute to this. Thank you :blush:
 
 New Update :smiley:
