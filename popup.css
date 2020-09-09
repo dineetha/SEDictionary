@@ -1,30 +1,38 @@
 /* Global Search Stylesheet */
 html {
-  width: 350px;
-  height: 110px;
+  width: 360px;
+  height: 120px;
   font-family: "arial";
+  margin: 0;
 }
 body {
-  width: 350px;
-  height: 110px;
+  width: 360px;
+  height: 120px;
   font-family: "arial";
-  font-size: 16px;
+  font-size: 14px;
+  margin: 0;
 }
 #search_form {
-  margin-top: 15px;
-  margin-bottom: 20px;
+  margin: 5px;
+  margin-top: 0px;
+}
+#search_box {
+  margin: 0;
+  width: 100%;
+  height: 28px;
+  font-size: 14px;
 }
 #footer {
   color: gray;
   font-size: 10px;
 }
 #result_box {
-  font-size: 14px;
+
 }
 .suggestList {
   display: inline-block;
   width: 100%;
-  font-size: 14px;
+
   border: 2px whitesmoke solid;
   border-radius: 2px;
   padding: 5px;
@@ -33,3 +41,20 @@ body {
 img {
   vertical-align: middle;
 }
+#layer {
+  position: fixed; 
+  z-index: 1; 
+  left: 0;
+  top: 0;
+  width: 100%; 
+  height: 100%; 
+  overflow: scroll;
+}
+/* #layer img {
+  display: block;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+} */
