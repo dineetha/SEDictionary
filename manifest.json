@@ -1,33 +1,25 @@
-﻿{
+{
+  "manifest_version": 3,
+  "name": "SE Dictionary",
+  "version": "2.0",
+  "description": "English to Sinhala and Sinhala to English Dictionary.",
   "background": {
-    "scripts": ["jquery-3.2.1.min.js", "background.js"],
-    "persistent": false
+    "service_worker": "service-worker.js"
   },
-  "browser_action": {
+  "action": {
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "img/icon16.png",
       "32": "img/icon32.png"
     },
-    "default_popup": "popup.html",
-    "default_title": "Sinhala English Dictionary"
+    "default_title": "SE Dictionary"
   },
-  "content_scripts": [
-    {
-      "matches": ["\u003Call_urls>"],
-      "js": ["content.js"]
-    }
-  ],
-  "description": "English to Sinhala and Sinhala to English Dictionary.",
   "icons": {
     "16": "img/icon16.png",
     "32": "img/icon32.png",
     "48": "img/icon48.png",
     "128": "img/icon128.png"
   },
-  "manifest_version": 2,
-  "name": "SE Dictionary",
-  "offline_enabled": true,
-  "permissions": ["activeTab", "contextMenus", "storage", "unlimitedStorage"],
-  "update_url": "https://clients2.google.com/service/update2/crx",
-  "version": "1.0"
+  "permissions": ["unlimitedStorage"],
+  "offline_enabled": true
 }

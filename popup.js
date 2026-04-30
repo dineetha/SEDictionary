@@ -1,186 +1,363 @@
-﻿/*
-SE Dictionary Chrome Extension - Popup page
-© GSI 2019
-Written by Dineetha
-This code use very simple easy to understand approach suitable for students learning JavaScript.
+/**
+ * SE Dictionary v2 – Popup script
+ *
+ * Search algorithm
+ * ────────────────
+ * All 134 K dictionary entries are stored in IndexedDB with two indices:
+ *   • "en" index  – keyed by the English word
+ *   • "si" index  – keyed by the Sinhala value
+ *
+ * Prefix / autocomplete queries use IDBKeyRange.bound(prefix, prefix + '\uffff')
+ * which lets the browser's B-tree index skip directly to the matching range –
+ * O(log n) rather than the O(n) linear scan used in v1.
+ *
+ * Exact-meaning lookups use index.getAll(IDBKeyRange.only(word)) which returns
+ * all translations for the given word in a single indexed read.
  */
 
-$(document).ready(function () {
-  // Get dictionary in chrome storage when popup opening
-  let words = [];
-  getWords(gettingReady);
+'use strict';
 
-  function getWords(cb) {
-    chrome.storage.local.get(["sed"], function (result) {
-      if (result != undefined) {
-        words = result.sed;
-        words.sort(compareEn);
-        cb();
-      } else {
-        $("#result_box").text(
-          "Error 1<br>Dictionary definitions can't be loaded"
-        );
+/* ── Constants ──────────────────────────────────────────────────────────── */
+const DB_NAME      = 'se_dictionary';
+const DB_VERSION   = 1;
+const STORE        = 'entries';
+const MAX_SUGGEST  = 10;
+const DEBOUNCE_MS  = 180;
+const THEME_KEY    = 'sed-theme';
+const POLL_INTERVAL_MS = 1000;
+
+/* ── DOM refs ───────────────────────────────────────────────────────────── */
+const searchInput = document.getElementById('search-input');
+const clearBtn    = document.getElementById('clear-btn');
+const langTag     = document.getElementById('lang-tag');
+const resultPane  = document.getElementById('results');
+const themeBtn    = document.getElementById('theme-btn');
+
+/* ── State ──────────────────────────────────────────────────────────────── */
+let db            = null;
+let debounceId    = null;
+let activeIdx     = -1;
+let suggestions   = [];
+let mode          = 'suggest';  // 'suggest' | 'meanings'
+
+/* ══ IndexedDB helpers ══════════════════════════════════════════════════════ */
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = ({ target: { result: d } }) => {
+      // Schema mirrors service-worker.js; covers the unlikely case where the
+      // popup opens before the service worker has run.
+      if (!d.objectStoreNames.contains(STORE)) {
+        const s = d.createObjectStore(STORE, { autoIncrement: true });
+        s.createIndex('en', 'en', { unique: false });
+        s.createIndex('si', 'si', { unique: false });
       }
-    });
-  }
+    };
 
-  function gettingReady() {
-    $("#layer").css("display", "none");
-    $("#search_box").focus();
-  }
-
-  /*   chrome.runtime.sendMessage({ getWords: "ok" }, function (response) {
-      console.log(response.sendWords);
-    }); */
-
-  // Search button click
-  function searchWord() {
-    $("#result_box").text("Searching.....");
-    let result = [];
-    let typedWord = $("#search_box").val();
-
-    if (sinhalaDetection(typedWord) == false) {
-      words.forEach((word) => {
-        for (const key in word) {
-          if (key == typedWord) {
-            result.push(word[key]);
-          }
-        }
-      });
-    } else {
-      words.forEach((word) => {
-        for (const key in word) {
-          if (word[key] == typedWord) {
-            result.push(key);
-          }
-        }
-      });
-    }
-
-    if (result.length == 0) {
-      if (typedWord == "") {
-        result.push("Please enter a word to find the meaning\n");
-      } else {
-        result.push("No matching words found\n");
-      }
-    }
-
-    $("#result_box").empty();
-    result.forEach((element) => {
-      $("#result_box").append("<div>" + element + "</div>");
-    });
-  }
-
-  // Getting instant suggestions
-  function suggestWord() {
-    let result = [];
-    let typedWord = $("#search_box").val();
-    if (sinhalaDetection(typedWord) == false) {
-      words.sort(compareEn);
-      words.forEach((word) => {
-        for (const key in word) {
-          if (key.startsWith(typedWord) && result.length <= 10) {
-            if (result.indexOf(key) < 0) {
-              result.push(key);
-            }
-          }
-        }
-      });
-    } else {
-      words.sort(compareSi);
-      words.forEach((word) => {
-        for (const key in word) {
-          if (word[key].startsWith(typedWord) && result.length <= 10) {
-            if (result.indexOf(word[key]) < 0) {
-              result.push(word[key]);
-            }
-          }
-        }
-      });
-      /*       words.forEach((word) => {
-              for (const key in word) {
-                let siWords = word[key].split(", ");
-                siWords.forEach((siWord) => {
-                  if (siWord.startsWith(typedWord) && result.length <= 10) {
-                    if (result.indexOf(siWord) < 0) {
-                      result.push(siWord);
-                    }
-                  }
-                });
-              }
-            }); */
-    }
-
-    if ($("#search_box").val() != "") {
-      if (result.length != 0) {
-        $("#result_box").empty();
-        result.forEach((element) => {
-          $("#result_box").append(
-            "<a href='#' class='suggestList'>" + element + "</a><br>"
-          );
-        });
-        $(".suggestList").click(function (e) {
-          $("#search_box").val(e.toElement.innerHTML);
-          searchWord();
-        });
-      } else {
-        $("#result_box").text("No matching words found\n");
-      }
-    } else {
-      $("#result_box").text("Please enter a word to find the meaning");
-    }
-  }
-
-  // Sinhala unicode detection
-  function sinhalaDetection(str) {
-    return (
-      str.split("").filter(function (char) {
-        var charCode = char.charCodeAt();
-        return charCode >= 3456 && charCode <= 3583;
-      }).length > 0
-    );
-  }
-
-  // Object array sort by values for Sinhala words
-  function compareSi(a, b) {
-    let a1 = a[Object.keys(a)[0]];
-    let b1 = b[Object.keys(b)[0]];
-    /*    if (a1.length > b1.length) {
-         return 1;
-       } else if(a1.length < b1.length) {
-         return -1;
-       } else {
-         return 0;
-       } */
-    return a1.localeCompare(b1);
-  }
-
-  // Object array sort by values for English words
-  function compareEn(a, b) {
-    let a1 = Object.keys(a)[0];
-    let b1 = Object.keys(b)[0];
-    return a1.localeCompare(b1);
-  }
-
-  //***** Events
-
-  // Type in search box event
-  $("#search_box")
-    .keyup(function (e) {
-      if (e.keyCode == 13) {
-        searchWord();
-      } else {
-        suggestWord();
-      }
-    })
-    .on("search", function () {
-      if ($(this).val() == "") {
-        suggestWord();
-      }
-    });
-
-  // Click search button and get meaning
-  $("#search_button").click(function () {
-    searchWord();
+    req.onsuccess = ({ target: { result } }) => resolve(result);
+    req.onerror   = ({ target: { error  } }) => reject(error);
   });
+}
+
+/** Count total entries – used to detect whether seeding has completed. */
+function countEntries() {
+  if (!db) return Promise.resolve(0);
+  return new Promise(resolve => {
+    const req = db.transaction(STORE, 'readonly').objectStore(STORE).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => resolve(0);
+  });
+}
+
+/**
+ * Prefix search via IDBKeyRange – returns up to MAX_SUGGEST unique words
+ * that start with `prefix` using the named index ('en' or 'si').
+ * Complexity: O(log n + k) where k = number of results returned.
+ */
+function prefixSearch(prefix, lang) {
+  if (!db || !prefix) return Promise.resolve([]);
+
+  return new Promise(resolve => {
+    const range   = IDBKeyRange.bound(prefix, prefix + '\uffff');
+    const seen    = new Set();
+    const results = [];
+
+    const req = db.transaction(STORE, 'readonly')
+                  .objectStore(STORE)
+                  .index(lang)
+                  .openCursor(range);
+
+    req.onsuccess = ({ target: { result: cursor } }) => {
+      if (!cursor || results.length >= MAX_SUGGEST) {
+        resolve(results);
+        return;
+      }
+      const word = lang === 'en' ? cursor.value.en : cursor.value.si;
+      if (!seen.has(word)) {
+        seen.add(word);
+        results.push(word);
+      }
+      cursor.continue();
+    };
+
+    req.onerror = () => resolve([]);
+  });
+}
+
+/**
+ * Retrieve all translations for an exact word match.
+ * Returns an array of strings in the opposite language.
+ */
+function getMeanings(word, lang) {
+  if (!db) return Promise.resolve([]);
+
+  return new Promise(resolve => {
+    const req = db.transaction(STORE, 'readonly')
+                  .objectStore(STORE)
+                  .index(lang)
+                  .getAll(IDBKeyRange.only(word));
+
+    req.onsuccess = ({ target: { result } }) => {
+      resolve(lang === 'en' ? result.map(r => r.si) : result.map(r => r.en));
+    };
+    req.onerror = () => resolve([]);
+  });
+}
+
+/* ══ Language detection ══════════════════════════════════════════════════ */
+
+/** Returns true when the string contains at least one Sinhala character. */
+function isSinhala(text) {
+  return /[\u0D80-\u0DFF]/.test(text);
+}
+
+function getLang(text) {
+  return isSinhala(text) ? 'si' : 'en';
+}
+
+/* ══ HTML helpers ════════════════════════════════════════════════════════ */
+
+function escHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ══ Rendering ══════════════════════════════════════════════════════════ */
+
+function showLoading() {
+  resultPane.innerHTML =
+    `<div class="state-msg">
+       <div class="spinner"></div>
+       <p>Setting up dictionary…</p>
+       <p class="small">This only happens once</p>
+     </div>`;
+}
+
+function showHint() {
+  resultPane.innerHTML =
+    `<div class="state-msg hint">
+       <p>Start typing to search</p>
+       <p class="small">Supports English &amp; සිංහල</p>
+     </div>`;
+}
+
+function showNoResults() {
+  resultPane.innerHTML =
+    `<div class="state-msg"><p class="error">No results found</p></div>`;
+}
+
+function renderSuggestions(words, lang) {
+  if (!words.length) { showNoResults(); return; }
+
+  suggestions = words;
+  mode        = 'suggest';
+  activeIdx   = -1;
+
+  const badgeCls = lang === 'si' ? 'si' : 'en';
+  const badgeLabel = lang === 'si' ? 'SI' : 'EN';
+
+  const html = words.map((w, i) =>
+    `<div class="suggest-item" data-idx="${i}" data-word="${escHtml(w)}" role="option" tabindex="-1">` +
+    `${escHtml(w)}<span class="badge ${badgeCls}">${badgeLabel}</span></div>`
+  ).join('');
+
+  resultPane.innerHTML = `<div class="suggest-list" role="listbox">${html}</div>`;
+
+  resultPane.querySelectorAll('.suggest-item').forEach(el => {
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      showMeanings(el.dataset.word, lang);
+    });
+  });
+}
+
+async function showMeanings(word, lang) {
+  const meanings = await getMeanings(word, lang);
+  if (!meanings.length) { showNoResults(); return; }
+
+  mode = 'meanings';
+  searchInput.value = word;
+  updateClearBtn();
+  updateLangTag(word);
+
+  const label = lang === 'en' ? 'EN → SI' : 'SI → EN';
+  const items = meanings.map(m =>
+    `<div class="meaning-item">${escHtml(m)}</div>`
+  ).join('');
+
+  resultPane.innerHTML =
+    `<div class="meanings-card">
+       <div class="meanings-header">
+         <span class="word-title">${escHtml(word)}</span>
+         <span class="direction-badge">${label}</span>
+       </div>
+       <div class="meanings-body">${items}</div>
+     </div>`;
+}
+
+/* ══ Search flow ═════════════════════════════════════════════════════════ */
+
+async function onInput() {
+  const text = searchInput.value.trim();
+  const lang = getLang(text);
+
+  updateLangTag(text);
+  updateClearBtn();
+
+  if (!text) { showHint(); return; }
+
+  const words = await prefixSearch(text, lang);
+  renderSuggestions(words, lang);
+}
+
+/* ══ Keyboard navigation ════════════════════════════════════════════════ */
+
+function moveFocus(delta) {
+  if (mode !== 'suggest' || !suggestions.length) return;
+
+  const items = resultPane.querySelectorAll('.suggest-item');
+  if (!items.length) return;
+
+  items[activeIdx]?.classList.remove('active');
+  activeIdx = Math.min(suggestions.length - 1, Math.max(-1, activeIdx + delta));
+
+  if (activeIdx >= 0) {
+    items[activeIdx].classList.add('active');
+    items[activeIdx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+/* ══ Helper UI updates ══════════════════════════════════════════════════ */
+
+function updateClearBtn() {
+  clearBtn.style.display = searchInput.value ? '' : 'none';
+}
+
+function updateLangTag(text) {
+  if (!text) {
+    langTag.style.display = 'none';
+    return;
+  }
+  const lang = getLang(text);
+  langTag.textContent    = lang === 'si' ? 'SI' : 'EN';
+  langTag.className      = lang;
+  langTag.style.display  = '';
+}
+
+/* ══ Theme ══════════════════════════════════════════════════════════════ */
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  themeBtn.title       = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+}
+
+/* ══ Event listeners ════════════════════════════════════════════════════ */
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(debounceId);
+  debounceId = setTimeout(onInput, DEBOUNCE_MS);
 });
+
+searchInput.addEventListener('keydown', async e => {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    moveFocus(1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveFocus(-1);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const text = searchInput.value.trim();
+    const lang = getLang(text);
+    if (mode === 'suggest' && activeIdx >= 0) {
+      await showMeanings(suggestions[activeIdx], lang);
+    } else if (text) {
+      await showMeanings(text, lang);
+    }
+  } else if (e.key === 'Escape' && mode === 'meanings') {
+    // Go back to suggestions for the current input
+    await onInput();
+    searchInput.focus();
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  searchInput.value     = '';
+  langTag.style.display = 'none';
+  clearBtn.style.display = 'none';
+  suggestions = [];
+  mode        = 'suggest';
+  showHint();
+  searchInput.focus();
+});
+
+themeBtn.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
+
+/* ══ Initialisation ════════════════════════════════════════════════════ */
+
+(async function init() {
+  // Restore user's theme preference (falls back to OS preference).
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+
+  try {
+    db = await openDB();
+  } catch (err) {
+    resultPane.innerHTML =
+      `<div class="state-msg"><p class="error">Failed to open dictionary</p></div>`;
+    return;
+  }
+
+  const count = await countEntries();
+
+  if (count === 0) {
+    // Service worker is still seeding – poll until data is available.
+    showLoading();
+    const poll = setInterval(async () => {
+      const n = await countEntries();
+      if (n > 0) {
+        clearInterval(poll);
+        showHint();
+        searchInput.focus();
+      }
+    }, POLL_INTERVAL_MS);
+    return;
+  }
+
+  showHint();
+  searchInput.focus();
+}());
