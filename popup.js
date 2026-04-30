@@ -24,7 +24,7 @@ const STORE        = 'entries';
 const MAX_SUGGEST  = 10;
 const DEBOUNCE_MS  = 180;
 const THEME_KEY    = 'sed-theme';
-const POLL_INTERVAL_MS = 1000;
+const SEED_POLL_INTERVAL_MS = 1000;
 
 /* ── DOM refs ───────────────────────────────────────────────────────────── */
 const searchInput = document.getElementById('search-input');
@@ -147,6 +147,11 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+/** Clamp a value between min and max (inclusive). */
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 /* ══ Rendering ══════════════════════════════════════════════════════════ */
 
 function showLoading() {
@@ -244,7 +249,7 @@ function moveFocus(delta) {
   if (!items.length) return;
 
   items[activeIdx]?.classList.remove('active');
-  activeIdx = Math.min(suggestions.length - 1, Math.max(-1, activeIdx + delta));
+  activeIdx = clamp(activeIdx + delta, -1, suggestions.length - 1);
 
   if (activeIdx >= 0) {
     items[activeIdx].classList.add('active');
@@ -354,7 +359,7 @@ themeBtn.addEventListener('click', () => {
         showHint();
         searchInput.focus();
       }
-    }, POLL_INTERVAL_MS);
+    }, SEED_POLL_INTERVAL_MS);
     return;
   }
 
